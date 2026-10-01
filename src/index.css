@@ -1,0 +1,323 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  КОЗЫРЬ — оформление.
+  Здесь только то, чего не удобно выразить классами Tailwind: слои стола,
+  карты, анимации появления. Раскладка — в компонентах.
+
+  Настроение: тёмное казино, но не мрачное. Золото на зелёном сукне,
+  крупные читаемые цифры, карты как главный визуальный носитель.
+*/
+
+@layer base {
+  :root {
+    --felt: #0b1f17;
+    --felt-2: #0f2a1f;
+    --felt-3: #143527;
+    --gold: #e3a93c;
+    --gold-soft: #f0d9a8;
+    --line: rgba(240, 217, 168, 0.14);
+    --text: #f2ede2;
+    --muted: #9aa79c;
+    --red: #c0392b;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-felt-800 text-[#f2ede2] font-body antialiased;
+    margin: 0;
+    /* Шум сукна: две едва заметные сетки, чтобы плоский зелёный не выглядел пустым */
+    background-image:
+      radial-gradient(ellipse 120% 80% at 50% -10%, rgba(227, 169, 60, 0.07), transparent 60%),
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 4px);
+    overscroll-behavior: none;
+  }
+
+  /* Числа в карточках и фишках не должны «прыгать» при изменении */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(240, 217, 168, 0.18);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 217, 168, 0.3);
+  }
+}
+
+@layer components {
+  /* ---------------- кнопки ---------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3
+           font-body font-semibold text-[15px] leading-none select-none
+           transition-all duration-200 active:scale-[.97]
+           disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-gold {
+    @apply btn bg-gold-400 text-felt-900 shadow-[0_4px_18px_-6px_rgba(227,169,60,.7)];
+  }
+  .btn-ghost {
+    @apply btn border border-[color:var(--line)] text-[#f2ede2] bg-white/[.03];
+  }
+  /* Наведение — только для устройств с настоящим курсором. Без этой обёртки
+     эффект залипает на телефоне после тапа и выглядит как зависшая кнопка. */
+  @media (hover: hover) {
+    .btn-gold:hover:not(:disabled) {
+      @apply bg-gold-300 -translate-y-0.5;
+      box-shadow: 0 8px 26px -8px rgba(227, 169, 60, 0.85);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      @apply bg-white/[.08] border-gold-400/50 -translate-y-0.5;
+    }
+  }
+  .btn-danger {
+    @apply btn border border-red-500/40 text-red-300 hover:bg-red-500/15;
+  }
+  .btn-sm {
+    @apply px-3.5 py-2 text-[13px] rounded-md;
+  }
+
+  /* ---------------- поля ---------------- */
+  .field {
+    @apply flex flex-col gap-1.5;
+  }
+  .field > label {
+    @apply text-[12px] uppercase tracking-[.14em] text-gold-300/70 font-semibold;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    @apply w-full rounded-lg border border-[color:var(--line)] bg-black/30 px-4 py-3
+           text-[15px] text-[#f2ede2] outline-none transition
+           placeholder:text-[#7c887e] focus:border-gold-400/70
+           focus:shadow-[0_0_0_3px_rgba(227,169,60,.16)];
+  }
+  .field select {
+    @apply appearance-none bg-no-repeat pr-10 cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23e3a93c' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-position: right 14px center;
+    background-size: 11px;
+  }
+  .field select option {
+    @apply bg-felt-700 text-[#f2ede2];
+  }
+
+  /* ---------------- панели ---------------- */
+  .panel {
+    @apply rounded-2xl border border-[color:var(--line)] bg-black/25 backdrop-blur-sm;
+  }
+  .panel-inset {
+    @apply rounded-xl border border-[color:var(--line)] bg-black/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1
+           text-[12px] font-semibold border border-[color:var(--line)]
+           text-gold-300/90 bg-gold-400/10;
+  }
+
+  /* ---------------- карта ---------------- */
+  .card-face {
+    @apply relative select-none rounded-[10px] bg-white shadow-card;
+    /* Именованные градиенты: бумага с лёгким теплом, край виден */
+    background-image: linear-gradient(160deg, #ffffff 0%, #fdfcf8 62%, #f2ede2 100%);
+  }
+  .card-back {
+    @apply relative select-none rounded-[10px] shadow-card;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(227, 169, 60, 0.22) 0 3px, transparent 3px 6px),
+      linear-gradient(150deg, #14412e 0%, #0b2419 100%);
+    border: 1px solid rgba(227, 169, 60, 0.3);
+  }
+
+  /*
+    Карточки, которые подсвечиваются: сыгранная карта, доступная карта,
+    выигравшая карта. Подсветка всегда идёт контуром плюс мягкое свечение —
+    одного изменения фона недостаточно, чтобы это заметили те, кто плохо
+    различает цвета.
+  */
+  .glow-red {
+    box-shadow:
+      0 0 0 2px rgba(181, 48, 42, 0.6),
+      0 0 24px -6px rgba(181, 48, 42, 0.85),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .glow-yellow {
+    box-shadow:
+      0 0 0 2px rgba(245, 158, 11, 0.6),
+      0 0 24px -6px rgba(245, 158, 11, 0.85),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .glow-green {
+    box-shadow:
+      0 0 0 2px rgba(4, 120, 87, 0.6),
+      0 0 24px -6px rgba(4, 120, 87, 0.85),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+  .glow-gold {
+    box-shadow:
+      0 0 0 2px rgba(227, 169, 60, 0.7),
+      0 0 30px -6px rgba(227, 169, 60, 0.9),
+      0 4px 14px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Р��башка карты: диагональная сетка по зелёному с золотой каймой */
+  .card-back-pattern {
+    background-image:
+      repeating-linear-gradient(45deg, rgba(227, 169, 60, 0.24) 0 3px, transparent 3px 7px),
+      repeating-linear-gradient(-45deg, rgba(227, 169, 60, 0.14) 0 3px, transparent 3px 7px),
+      linear-gradient(150deg, #14412e 0%, #0b2419 100%);
+  }
+
+  /* Место за столом: вогнутое зелёное пятно */
+  .seat {
+    @apply relative flex flex-col items-center gap-1.5;
+  }
+  .seat-turn::before {
+    content: '';
+    @apply absolute -inset-3 rounded-full;
+    border: 2px solid rgba(227, 169, 60, 0.55);
+    animation: seatPulse 1.6s ease-out infinite;
+  }
+
+  /* Фишки — круглые счётчики фишек */
+  .stack {
+    @apply flex items-center gap-1.5 rounded-full bg-black/45 border border-[color:var(--line)]
+           px-2.5 py-1 text-[13px] font-semibold tnum;
+  }
+
+  .log-line {
+    @apply text-[13px] leading-relaxed text-[#9aa79c] py-0.5;
+  }
+  .log-line b {
+    @apply text-gold-300/90 font-semibold;
+  }
+}
+
+@layer utilities {
+  /* Появление экрана: мягкий подъём снизу */
+  .fade-up {
+    animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .fade-in {
+    animation: fadeIn 0.35s ease both;
+  }
+  /* Раздача карты: вылетает из центра стола */
+  .deal-in {
+    animation: dealIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* Всплывающее число фишек при выигрыше */
+  .chip-fly {
+    animation: chipFly 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* Трофей/баннер победителя */
+  .win-pulse {
+    animation: winPulse 1.4s ease-in-out 2;
+  }
+  /* Подсветка карты, которую можно сыграть */
+  .playable {
+    animation: playable 1.8s ease-in-out infinite;
+  }
+  .no-anim * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dealIn {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.86) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chipFly {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1);
+  }
+}
+@keyframes winPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(227, 169, 60, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(227, 169, 60, 0);
+  }
+}
+@keyframes playable {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(227, 169, 60, 0));
+  }
+  50% {
+    filter: drop-shadow(0 4px 12px rgba(227, 169, 60, 0.75));
+  }
+}
+@keyframes seatPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+/* Уважаем системную настройку «меньше движения» */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

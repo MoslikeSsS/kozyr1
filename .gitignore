@@ -1,0 +1,21 @@
+# Папка сборки не нужна в репозитории: Pages забирает артефакты из CI.
+dist/
+node_modules/
+.vite/
+
+# Локальное окружение
+.env
+.env.local
+*.local
+
+# Служебное
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Базовые кэши редакторов
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

@@ -75,17 +75,32 @@ async function uploadTree(dir, base = '') {
 }
 
 /** Создаёт дерево и коммит, возвращает sha коммита. */
-async function makeCommit(treeEntries, message, baseSha) {
+/**
+ * Создаёт дерево и коммит, возвращает sha коммита.
+ * baseCommitSha — с какого коммита продолжаем историю. Дерево для base_tree
+ * GitHub возьмёт сам из этого коммита, а родителем станет именно он:
+ * путать эти два значения нельзя, иначе родителем станет дерево.
+ */
+async function makeCommit(treeEntries, message, baseCommitSha) {
   const tree = await api(`https://api.github.com/repos/${REPO}/git/trees`, {
     method: 'POST',
-    body: JSON.stringify(baseSha ? { base_tree: baseSha, tree: treeEntries } : { tree: treeEntries }),
+    body: JSON.stringify(
+      baseCommitSha
+        ? {
+            base_tree: (
+              await api(`https://api.github.com/repos/${REPO}/git/commits/${baseCommitSha}`)
+            ).tree.sha,
+            tree: treeEntries,
+          }
+        : { tree: treeEntries },
+    ),
   });
   const body = {
     message,
     tree: tree.sha,
     committer: { name: 'dsh', email: 'dsh@localhost' },
   };
-  if (baseSha) body.parents = [baseSha];
+  if (baseCommitSha) body.parents = [baseCommitSha];
   const commit = await api(`https://api.github.com/repos/${REPO}/git/commits`, { method: 'POST', body: JSON.stringify(body) });
   return commit.sha;
 }
@@ -129,9 +144,20 @@ async function setRef(branch, sha) {
   const srcEntries = await uploadTree(ROOT);
   const head = await api(`https://api.github.com/repos/${REPO}/git/ref/heads/main`);
   const base = await api(`https://api.github.com/repos/${REPO}/git/commits/${head.object.sha}`);
-  const srcCommit = await makeCommit(srcEntries, `Исходники, ${stamp}`, base.sha);
+
+  // Собираем дерево поверх прежнего, но явно удаляем всё, чего в новой
+  // сборке уже нет: GitHub удаляет путь, если передать sha: null.
+  // Без этого файлы прошлых коммитов живут вечно — например, папка assets/
+  // от раннего деплоя, то есть ненужные копии сборки в репозитории с исходниками.
+  const oldTree = await api(`https://api.github.com/repos/${REPO}/git/trees/${base.tree.sha}?recursive=1`);
+  const fresh = new Set(srcEntries.map((e) => e.path));
+  const stale = (oldTree.tree || [])
+    .filter((n) => n.type === 'blob' && !fresh.has(n.path))
+    .map((n) => ({ path: n.path, mode: '100644', type: 'blob', sha: null }));
+
+  const srcCommit = await makeCommit([...srcEntries, ...stale], `Исходники, ${stamp}`, base.sha);
   await setRef('main', srcCommit);
-  console.log(`  main → ${srcCommit.slice(0, 8)} (${srcEntries.length} файлов)`);
+  console.log(`  main → ${srcCommit.slice(0, 8)} (${srcEntries.length} файлов${stale.length ? `, удалено ${stale.length}` : ''})`);
 
   /* ---- включаем Pages на ветку gh-pages ---- */
   console.log('Настраиваю Pages…');

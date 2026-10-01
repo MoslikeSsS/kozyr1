@@ -159,25 +159,23 @@ async function setRef(branch, sha) {
   await setRef('main', srcCommit);
   console.log(`  main → ${srcCommit.slice(0, 8)} (${srcEntries.length} файлов${stale.length ? `, удалено ${stale.length}` : ''})`);
 
-  /* ---- включаем Pages на ветку gh-pages ---- */
-  console.log('Настраиваю Pages…');
-  try {
-    await api(`https://api.github.com/repos/${REPO}/pages`, {
-      method: 'PUT',
-      body: JSON.stringify({ source: { branch: 'gh-pages', path: '/' } }),
-    });
-    console.log('  источник: ветка gh-pages, папка /');
-  } catch (e) {
-    // Страница уже настроена — PUT её не меняет, тогда подходит PATCH.
-    await api(`https://api.github.com/repos/${REPO}/pages`, {
-      method: 'PATCH',
-      body: JSON.stringify({ source: { branch: 'gh-pages', path: '/' } }),
-    });
-    console.log('  источник обновлён через PATCH');
+  /* ---- проверяем, что Pages смотрит на gh-pages ---- */
+  console.log('Проверяю Pages…');
+  const pages = await api(`https://api.github.com/repos/${REPO}/pages`);
+  const src = pages.source || {};
+  const right = src.branch === 'gh-pages' && (src.path === '/' || src.path === '/ (root)');
+
+  if (right) {
+    console.log(`  источник: ${src.branch}${src.path}, статус: ${pages.status}`);
+  } else {
+    // Переключить источник токену без права Pages:write не дано, поэтому
+    // не роняем публикацию из-за этого: файлы уже загружены, остаётся
+    // один раз переключить источник вручную в настройках репозитория.
+    console.log(`  ВНИМАНИЕ: источник Pages — ${JSON.stringify(src)}, а нужен gh-pages.`);
+    console.log('  Переключите один раз: Settings → Pages → Source → gh-pages, папка / (root)');
   }
 
-  const pages = await api(`https://api.github.com/repos/${REPO}/pages`);
-  console.log(`\nСтатус Pages: ${pages.status}, адрес: ${pages.html_url}`);
+  console.log(`\nАдрес: ${pages.html_url || `https://${REPO.split('/')[0]}.github.io/${REPO.split('/')[1]}/`}`);
   console.log('Сборка развернётся в течение минуты.');
 })().catch((e) => {
   console.error('Ошибка:', e.message);
